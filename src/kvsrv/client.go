@@ -35,8 +35,12 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
-
 	// You will have to modify this function.
+	args := GetArgs{key}
+	reply := GetReply{}
+	if ck.server.Call("KVServer.Get", &args, &reply) {
+		return reply.Value
+	}
 	return ""
 }
 
@@ -50,6 +54,17 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
+	args := PutAppendArgs{Key: key, Value: value}
+	reply := PutAppendReply{}
+	if op == "Put" {
+		if ck.server.Call("KVServer.Put", &args, &reply) {
+			return reply.Value
+		}
+	} else if op  == "Append" {
+		if ck.server.Call("KVServer.Append", &args, &reply) {
+			return reply.Value
+		}
+	}	
 	return ""
 }
 
