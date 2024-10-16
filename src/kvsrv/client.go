@@ -8,6 +8,7 @@ import "math/big"
 type Clerk struct {
 	server *labrpc.ClientEnd
 	// You will have to modify this struct.
+	lastReceivedId int64
 }
 
 func nrand() int64 {
@@ -21,7 +22,15 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.server = server
 	// You'll have to add code here.
+	ck.lastReceivedId = -1
 	return ck
+}
+
+func (ck *Clerk) Call(svcMeth string, args interface{}, reply interface{}, id int64) {
+	for !ck.server.Call(svcMeth, args, reply) {
+		continue
+	}
+	ck.lastReceivedId = id;
 }
 
 // fetch the current value for a key.
@@ -36,12 +45,14 @@ func MakeClerk(server *labrpc.ClientEnd) *Clerk {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
 	// You will have to modify this function.
-	args := GetArgs{key}
-	reply := GetReply{}
-	if ck.server.Call("KVServer.Get", &args, &reply) {
-		return reply.Value
+	id := nrand()
+	args := GetArgs{Key: key, Id: id}
+	if ck.lastReceivedId != -1 {
+		args.LastReceivedId = ck.lastReceivedId
 	}
-	return ""
+	reply := GetReply{}
+	ck.Call("KVServer.Get", &args, &reply, id)
+	return reply.Value
 }
 
 // shared by Put and Append.
@@ -54,18 +65,14 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) string {
 	// You will have to modify this function.
-	args := PutAppendArgs{Key: key, Value: value}
+	id := nrand()
+	args := PutAppendArgs{Key: key, Value: value, Id: id}
+	if ck.lastReceivedId != -1 {
+		args.LastReceivedId = ck.lastReceivedId
+	}
 	reply := PutAppendReply{}
-	if op == "Put" {
-		if ck.server.Call("KVServer.Put", &args, &reply) {
-			return reply.Value
-		}
-	} else if op  == "Append" {
-		if ck.server.Call("KVServer.Append", &args, &reply) {
-			return reply.Value
-		}
-	}	
-	return ""
+	ck.Call("KVServer." + op, &args, &reply, id)
+	return reply.Value
 }
 
 func (ck *Clerk) Put(key string, value string) {
