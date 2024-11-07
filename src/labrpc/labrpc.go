@@ -49,15 +49,18 @@ package labrpc
 //   pass svc to srv.AddService()
 //
 
-import "6.5840/labgob"
-import "bytes"
-import "reflect"
-import "sync"
-import "log"
-import "strings"
-import "math/rand"
-import "time"
-import "sync/atomic"
+import (
+	"bytes"
+	"log"
+	"math/rand"
+	"reflect"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"6.5840/labgob"
+)
 
 type reqMsg struct {
 	endname  interface{} // name of sending ClientEnd
@@ -217,7 +220,10 @@ func (rn *Network) isServerDead(endname interface{}, servername interface{}, ser
 
 func (rn *Network) processReq(req reqMsg) {
 	enabled, servername, server, reliable, longreordering := rn.readEndnameInfo(req.endname)
-
+	if rn.isServerDead(req.endname, servername, server) {
+		req.replyCh <- replyMsg{false, nil}
+		return
+	}
 	if enabled && servername != nil && server != nil {
 		if reliable == false {
 			// short delay
